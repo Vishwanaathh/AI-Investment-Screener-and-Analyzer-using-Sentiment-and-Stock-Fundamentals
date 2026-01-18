@@ -5,7 +5,7 @@ import joblib
 
 print("Welcome to fundamentals stock classification")
 
-data = pd.read_csv("../nifty_500_stats.csv", sep=";")
+data = pd.read_csv("../datasets/nifty_500_stats.csv", sep=";")
 
 data["correct_p_e"] = np.where((data["price_earnings"] < 20) & (data["price_earnings"] > 10), "Yes", "No")
 data["Large_cap"] = np.where(data["market_cap"] >= 20000, "Yes", "No")
