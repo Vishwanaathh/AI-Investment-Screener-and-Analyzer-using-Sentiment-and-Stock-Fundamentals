@@ -5,31 +5,51 @@ import joblib
 
 print("Welcome to fundamentals stock classification")
 
-data = pd.read_csv("../datasets/nifty_500_stats.csv", sep=";")
+data = pd.read_csv("/Users/sriramkancherla/Desktop/Projects/Stock Screener with Sentiment Analyzer/AI-Investment-Screener-and-Analyzer-using-Sentiment-and-Stock-Fundamentals-main/datasets/financials_cleaned.csv", sep=",")
 
-data["correct_p_e"] = np.where((data["price_earnings"] < 20) & (data["price_earnings"] > 10), "Yes", "No")
-data["Large_cap"] = np.where(data["market_cap"] >= 20000, "Yes", "No")
-data["Dividend_Stock"] = np.where(data['dividend_yield'] > 3.5, "Yes", "No")
-data['Good_Return_Potential'] = np.where((data['roce'] > np.average(data['roce'])) & (data['roe'] > np.average(data['roe'])), "Yes", "No")
-data['Good_Sales_Potential'] = np.where(data['sales_growth_3yr'] > np.average(data['sales_growth_3yr']), "Yes", "No")
-data["pb_ratio"] = data["current_value"] / data["book_value"]
-data["good_book_value"] = np.where((data["pb_ratio"] < data["pb_ratio"].mean()) & (data["roe"] > 15), "Yes", "No")
-data["selling_zone"] = np.where(((data["high_52week"] - data["current_value"]) / data["high_52week"]) <= 0.10, "Yes", "No")
-data["good_fundamentals"] = np.where(
-    (data["price_earnings"].between(10, 20)) &
-    (data["market_cap"] >= 20000) &
-    (data["roce"] > data["roce"].mean()) &
-    (data["roe"] > data["roe"].mean()) &
-    ((data["dividend_yield"] > 3.5) | (data["sales_growth_3yr"] > data["sales_growth_3yr"].mean())),
-    1,
-    0
+numeric_cols = [
+    "Price", "Price/Earnings", "Dividend_Yield", "52w_low", "52w_high",
+    "Market_Cap", "EBITDA", "Price/Sales", "Price/Book", "Book_Value"
+]
+data[numeric_cols] = data[numeric_cols].apply(pd.to_numeric, errors="coerce")
+data = data.dropna(subset=numeric_cols)
+
+data["selling_zone"] = np.where(
+    ((data["52w_high"] - data["Price"]) / data["52w_high"]) <= 0.10,
+    1, 0
 )
 
-X = data[['market_cap','current_value','high_52week','low_52week','book_value','price_earnings','dividend_yield','roce','roe','sales_growth_3yr']]
-Y = data['good_fundamentals']
+data["ebitda_to_mcap"] = data["EBITDA"] / data["Market_Cap"]
+
+data["good_fundamentals"] = np.where(
+    (data["Price/Earnings"].between(10, 25)) &
+    (data["Market_Cap"] >= 10000000000) &
+    (data["ebitda_to_mcap"].between(0.05, 0.15)) &
+    ((data["Price/Sales"] < 1) | (data["Price/Sales"].between(1, 2))) &
+    (data["Price/Book"] < 3) &
+    ((data["Dividend_Yield"] > 3.5) | (data["selling_zone"] == 1)),
+    1, 0
+)
+
+X = data[
+    [
+        "Market_Cap",
+        "Price",
+        "52w_high",
+        "52w_low",
+        "Book_Value",
+        "Price/Earnings",
+        "Dividend_Yield",
+        "EBITDA",
+        "Price/Sales",
+        "Price/Book"
+    ]
+]
+
+Y = data["good_fundamentals"]
 
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X, Y)
 
 joblib.dump(model, "fundamentals_stock_model.joblib")
-print("Model saved as fundamentals_stock_model.joblib")
+print("✅ Model saved as fundamentals_stock_model.joblib")
