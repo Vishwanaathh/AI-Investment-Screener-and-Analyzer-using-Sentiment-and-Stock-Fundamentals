@@ -5,7 +5,7 @@ import joblib
 
 print("Welcome to fundamentals stock regression")
 
-data = pd.read_csv("/Users/sriramkancherla/Desktop/Projects/Stock Screener with Sentiment Analyzer/AI-Investment-Screener-and-Analyzer-using-Sentiment-and-Stock-Fundamentals-main/datasets/financials_cleaned.csv", sep=",")
+data = pd.read_csv("../datasets/financials_cleaned.csv", sep=",")
 
 numeric_cols = [
     "Price", "Price/Earnings", "Dividend_Yield", "52w_low", "52w_high",
@@ -63,4 +63,5 @@ modell = XGBRegressor(
 modell.fit(X, Y)
 
 joblib.dump(modell, "stock_score_regression.pkl")
-print("✅ Model saved as stock_score_regression.pkl")
+print("Model saved as stock_score_regression.pkl")
+
