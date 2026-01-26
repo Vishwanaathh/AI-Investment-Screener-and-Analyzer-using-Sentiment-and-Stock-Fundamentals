@@ -9,6 +9,10 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import load_model
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 
 def clean_text(text):
@@ -120,7 +124,15 @@ print("✅ Sentiment Analyzer loaded")
 print("Loading Fundamentals scorer model...")
 score = joblib.load("../stock_score_regression.pkl")
 print("✅ Score model loaded\n")
-
+rfrscore=joblib.load('../rfr_stockfundamentalsscorer.pkl')
+print("Second score model loaded")
+nn_model = load_model('../keras_stockfundamentalsscorer.h5',compile=False)
+nn_X_scaler = joblib.load('../keras_X_scaler.pkl')
+nn_y_scaler = joblib.load('../keras_Y_scaler.pkl')
+print("Neural Network for fundamentals loaded")
+senlogreg=joblib.load('../sentiment_logreg.pkl')
+print("Loading Sentimental Model")
+vectorizer = joblib.load("../tfidf_vectorizer.pkl")
 while True:
     n = input("Enter y to continue, q to quit: ").strip().lower()
 
@@ -169,9 +181,30 @@ while True:
 
         f = fund.predict(input_features)[0]
         sc = score.predict(input_features)[0]
+        rfr=rfrscore.predict(input_features)[0]
+        X_input_scaled = nn_X_scaler.transform(input_features)
+        nn_scaled = nn_model.predict(X_input_scaled)
+        nns = nn_y_scaler.inverse_transform(nn_scaled.reshape(-1,1))[0][0]
 
-        print("\nStock Score is:")
+        print("Stock Neural Network score is")
+        print(nns)
+          
+
+
+        print("\nStock XG  Score is:")
         print(sc)
+        print("Stock RFR SCORE is:")
+        print(rfr)
+        
+        print("Average fundamentals score is")
+        
+        sc=(sc+rfr+nns)/3
+        print(sc)
+        print("Sentiment score is")
+        print(s)
+        print("Sentiment given by Logistic Regression model (0 is bad 1 is good) is:")
+        print(senlogreg.predict(vectorizer.transform([all_news])))
+        
 
         
         if f == 0 and s < -0.2:
